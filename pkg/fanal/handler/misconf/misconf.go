@@ -10,8 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/aquasecurity/defsec/pkg/scanners/rbac"
-
 	"github.com/liamg/memoryfs"
 	"github.com/samber/lo"
 	"golang.org/x/xerrors"
@@ -20,15 +18,18 @@ import (
 	"github.com/aquasecurity/defsec/pkg/scan"
 	"github.com/aquasecurity/defsec/pkg/scanners"
 	cfscanner "github.com/aquasecurity/defsec/pkg/scanners/cloudformation"
+	cfparser "github.com/aquasecurity/defsec/pkg/scanners/cloudformation/parser"
 	dfscanner "github.com/aquasecurity/defsec/pkg/scanners/dockerfile"
 	"github.com/aquasecurity/defsec/pkg/scanners/helm"
 	k8sscanner "github.com/aquasecurity/defsec/pkg/scanners/kubernetes"
 	"github.com/aquasecurity/defsec/pkg/scanners/options"
+	"github.com/aquasecurity/defsec/pkg/scanners/rbac"
 	tfscanner "github.com/aquasecurity/defsec/pkg/scanners/terraform"
 	"github.com/aquasecurity/trivy/pkg/fanal/analyzer"
 	"github.com/aquasecurity/trivy/pkg/fanal/artifact"
 	"github.com/aquasecurity/trivy/pkg/fanal/handler"
 	"github.com/aquasecurity/trivy/pkg/fanal/types"
+	"github.com/aquasecurity/trivy/pkg/log"
 )
 
 func init() {
@@ -38,7 +39,8 @@ func init() {
 const version = 1
 
 type misconfPostHandler struct {
-	scanners map[string]scanners.Scanner
+	filePatterns []string
+	scanners     map[string]scanners.FSScanner
 }
 
 // for a given set of paths, find the most specific filesystem path that contains all the descendants
@@ -176,7 +178,8 @@ func newMisconfPostHandler(artifactOpt artifact.Option) (handler.PostHandler, er
 	}
 
 	return misconfPostHandler{
-		scanners: map[string]scanners.Scanner{
+		filePatterns: artifactOpt.MisconfScannerOption.FilePatterns,
+		scanners: map[string]scanners.FSScanner{
 			types.Terraform:      tfscanner.New(opts...),
 			types.CloudFormation: cfscanner.New(opts...),
 			types.Dockerfile:     dfscanner.NewScanner(opts...),
@@ -196,6 +199,15 @@ var enabledDefsecTypes = map[detection.FileType]string{
 	detection.FileTypeRbac:           types.Rbac,
 }
 
+func (h misconfPostHandler) hasCustomPatternForType(t string) bool {
+	for _, pattern := range h.filePatterns {
+		if strings.HasPrefix(pattern, t+":") {
+			return true
+		}
+	}
+	return false
+}
+
 // Handle detects misconfigurations.
 func (h misconfPostHandler) Handle(ctx context.Context, result *analyzer.AnalysisResult, blob *types.BlobInfo) error {
 	files, ok := result.Files[h.Type()]
@@ -213,7 +225,7 @@ func (h misconfPostHandler) Handle(ctx context.Context, result *analyzer.Analysi
 		for defsecType, localType := range enabledDefsecTypes {
 
 			buffer := bytes.NewReader(file.Content)
-			if !detection.IsType(file.Path, buffer, defsecType) {
+			if !h.hasCustomPatternForType(localType) && !detection.IsType(file.Path, buffer, defsecType) {
 				continue
 			}
 			// Replace with more detailed config type
@@ -236,6 +248,10 @@ func (h misconfPostHandler) Handle(ctx context.Context, result *analyzer.Analysi
 	for t, scanner := range h.scanners {
 		results, err := scanner.ScanFS(ctx, mapMemoryFS[t], ".")
 		if err != nil {
+			if _, ok := err.(*cfparser.InvalidContentError); ok {
+				log.Logger.Errorf("scan %q was broken with InvalidContentError: %v", scanner.Name(), err)
+				continue
+			}
 			return xerrors.Errorf("scan config error: %w", err)
 		}
 
@@ -268,9 +284,9 @@ func resultsToMisconf(configType string, scannerName string, results scan.Result
 
 		query := fmt.Sprintf("data.%s.%s", result.RegoNamespace(), result.RegoRule())
 
-		ruleID := result.Rule().LegacyID
-		if ruleID == "" {
-			ruleID = result.Rule().AVDID
+		ruleID := result.Rule().AVDID
+		if result.RegoNamespace() != "" && len(result.Rule().Aliases) > 0 {
+			ruleID = result.Rule().Aliases[0]
 		}
 
 		cause := NewCauseWithCode(result)

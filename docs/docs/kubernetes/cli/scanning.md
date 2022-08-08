@@ -41,10 +41,23 @@ Scan a specific namespace:
 $ trivy k8s -n kube-system --report=summary all
 ```
 
+Use a specific kubeconfig file:
+
+```
+$ trivy k8s --kubeconfig ~/.kube/config2 -n kube-system --report=summary all
+```
+
 Scan a specific resource and get all the output:
 
 ```
 $ trivy k8s deployment appname
+```
+
+Scan all deploys, or deploys and configmaps:
+
+```
+$ trivy k8s --report=summary deployment
+$ trivy k8s --report=summary deployment,configmaps
 ```
 
 If you want to pass in flags before scanning specific workloads, you will have to do it before the resource name.

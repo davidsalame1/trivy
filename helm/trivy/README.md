@@ -73,6 +73,7 @@ The following table lists the configurable parameters of the Trivy chart and the
 | `trivy.cache.redis.enabled`           | Enable Redis as caching backend                                         | `false` |
 | `trivy.cache.redis.url`               | Specify redis connection url, e.g. redis://redis.redis.svc:6379         | `` |
 | `trivy.serverToken`                   | The token to authenticate Trivy client with Trivy server                | `` |
+| `trivy.existingSecret`                | existingSecret if an existing secret has been created outside the chart. Overrides gitHubToken, registryUsername, registryPassword, serverToken | `` |
 | `trivy.podAnnotations`                | Annotations for pods created by statefulset                             | `{}` |
 | `service.name`                        | If specified, the name used for the Trivy service                       |     |
 | `service.type`                        | Kubernetes service type                                                 | `ClusterIP` |
@@ -102,5 +103,5 @@ This chart uses a PersistentVolumeClaim to reduce the number of database downloa
 
 ## Caching
 
-You can specify a Redis server as cache backend. This Redis server has to be already present. You can use the [bitname chart](https://bitnami.com/stack/redis/helm).
+You can specify a Redis server as cache backend. This Redis server has to be already present. You can use the [bitnami chart](https://bitnami.com/stack/redis/helm).
 More Information about the caching backends can be found [here](https://github.com/aquasecurity/trivy#specify-cache-backend).

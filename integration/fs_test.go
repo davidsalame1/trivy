@@ -4,15 +4,13 @@
 package integration
 
 import (
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/aquasecurity/trivy/pkg/commands"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFilesystem(t *testing.T) {
@@ -25,6 +23,7 @@ func TestFilesystem(t *testing.T) {
 		listAllPkgs    bool
 		input          string
 		secretConfig   string
+		filePatterns   []string
 	}
 	tests := []struct {
 		name   string
@@ -46,6 +45,14 @@ func TestFilesystem(t *testing.T) {
 				input:          "testdata/fixtures/fs/nodejs",
 			},
 			golden: "testdata/nodejs.json.golden",
+		},
+		{
+			name: "pnpm",
+			args: args{
+				securityChecks: "vuln",
+				input:          "testdata/fixtures/fs/pnpm",
+			},
+			golden: "testdata/pnpm.json.golden",
 		},
 		{
 			name: "pip",
@@ -72,6 +79,16 @@ func TestFilesystem(t *testing.T) {
 				namespaces:     []string{"testing"},
 			},
 			golden: "testdata/dockerfile.json.golden",
+		},
+		{
+			name: "dockerfile with custom file pattern",
+			args: args{
+				securityChecks: "config",
+				input:          "testdata/fixtures/fs/dockerfile_file_pattern",
+				namespaces:     []string{"testing"},
+				filePatterns:   []string{"dockerfile:Customfile"},
+			},
+			golden: "testdata/dockerfile_file_pattern.json.golden",
 		},
 		{
 			name: "dockerfile with rule exception",
@@ -118,6 +135,14 @@ func TestFilesystem(t *testing.T) {
 			golden: "testdata/helm_testchart.json.golden",
 		},
 		{
+			name: "helm chart directory scanning with builtin policies and non string Chart name",
+			args: args{
+				securityChecks: "config",
+				input:          "testdata/fixtures/fs/helm_badname",
+			},
+			golden: "testdata/helm_badname.json.golden",
+		},
+		{
 			name: "secrets",
 			args: args{
 				securityChecks: "vuln,secret",
@@ -137,7 +162,7 @@ func TestFilesystem(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			osArgs := []string{
-				"trivy", "--cache-dir", cacheDir, "fs", "--skip-db-update", "--skip-policy-update",
+				"-q", "--cache-dir", cacheDir, "fs", "--skip-db-update", "--skip-policy-update",
 				"--format", "json", "--offline-scan", "--security-checks", tt.args.securityChecks,
 			}
 
@@ -164,6 +189,12 @@ func TestFilesystem(t *testing.T) {
 				defer os.Remove(trivyIgnore)
 			}
 
+			if len(tt.args.filePatterns) != 0 {
+				for _, filePattern := range tt.args.filePatterns {
+					osArgs = append(osArgs, "--file-patterns", filePattern)
+				}
+			}
+
 			// Setup the output file
 			outputFile := filepath.Join(t.TempDir(), "output.json")
 			if *update {
@@ -181,12 +212,9 @@ func TestFilesystem(t *testing.T) {
 			osArgs = append(osArgs, "--output", outputFile)
 			osArgs = append(osArgs, tt.args.input)
 
-			// Setup CLI App
-			app := commands.NewApp("dev")
-			app.Writer = io.Discard
-
 			// Run "trivy fs"
-			assert.Nil(t, app.Run(osArgs))
+			err := execute(osArgs)
+			require.NoError(t, err)
 
 			// Compare want and got
 			compareReports(t, tt.golden, outputFile)

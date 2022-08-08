@@ -26,6 +26,7 @@ var (
 		"6": time.Date(2021, 3, 21, 23, 59, 59, 0, time.UTC),
 		"7": time.Date(2024, 7, 23, 23, 59, 59, 0, time.UTC),
 		"8": time.Date(2029, 7, 18, 23, 59, 59, 0, time.UTC),
+		"9": time.Date(2032, 7, 18, 23, 59, 59, 0, time.UTC),
 	}
 )
 
@@ -86,6 +87,7 @@ func (s *Scanner) Detect(osVer string, _ *ftypes.Repository, pkgs []ftypes.Packa
 				VulnerabilityID:  adv.VulnerabilityID,
 				PkgName:          pkg.Name,
 				InstalledVersion: installed,
+				Ref:              pkg.Ref,
 				Layer:            pkg.Layer,
 				Custom:           adv.Custom,
 				DataSource:       adv.DataSource,

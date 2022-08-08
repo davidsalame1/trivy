@@ -15,6 +15,9 @@ type Report struct {
 	ArtifactType  ftypes.ArtifactType `json:",omitempty"`
 	Metadata      Metadata            `json:",omitempty"`
 	Results       Results             `json:",omitempty"`
+
+	// SBOM
+	CycloneDX *ftypes.CycloneDX `json:"-"` // Just for internal usage, not exported in JSON
 }
 
 // Metadata represents a metadata of artifact
@@ -36,11 +39,15 @@ type Results []Result
 type ResultClass string
 
 const (
-	ClassOSPkg   = "os-pkgs"
-	ClassLangPkg = "lang-pkgs"
-	ClassConfig  = "config"
-	ClassSecret  = "secret"
-	ClassCustom  = "custom"
+	ClassOSPkg       = "os-pkgs"        // For OS packages
+	ClassLangPkg     = "lang-pkgs"      // For language-specific packages
+	ClassVulnOSPkg   = "vuln-os-pkgs"   // For detected vulnerabilities in OS packages
+	ClassVulnLangPkg = "vuln-lang-pkgs" // For detected vulnerabilities in language-specific packages
+	ClassConfig      = "config"         // For detected misconfigurations
+	ClassSecret      = "secret"         // For detected secrets
+	ClassLicense     = "license"        // For detected package licenses
+	ClassLicenseFile = "license-file"   // For detected licenses in files
+	ClassCustom      = "custom"
 )
 
 // Result holds a target and detected vulnerabilities
@@ -53,6 +60,7 @@ type Result struct {
 	MisconfSummary    *MisconfSummary            `json:"MisconfSummary,omitempty"`
 	Misconfigurations []DetectedMisconfiguration `json:"Misconfigurations,omitempty"`
 	Secrets           []ftypes.SecretFinding     `json:"Secrets,omitempty"`
+	Licenses          []DetectedLicense          `json:"Licenses,omitempty"`
 	CustomResources   []ftypes.CustomResource    `json:"CustomResources,omitempty"`
 }
 
@@ -79,6 +87,11 @@ func (r *Result) MarshalJSON() ([]byte, error) {
 	})
 }
 
+func (r *Result) IsEmpty() bool {
+	return len(r.Packages) == 0 && len(r.Vulnerabilities) == 0 && len(r.Misconfigurations) == 0 &&
+		len(r.Secrets) == 0 && len(r.Licenses) == 0 && len(r.CustomResources) == 0
+}
+
 type MisconfSummary struct {
 	Successes  int
 	Failures   int
@@ -101,6 +114,9 @@ func (results Results) Failed() bool {
 			}
 		}
 		if len(r.Secrets) > 0 {
+			return true
+		}
+		if len(r.Licenses) > 0 {
 			return true
 		}
 	}

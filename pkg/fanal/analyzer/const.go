@@ -53,9 +53,11 @@ const (
 	TypeNpmPkgLock Type = "npm"
 	TypeNodePkg    Type = "node-pkg"
 	TypeYarn       Type = "yarn"
+	TypePnpm       Type = "pnpm"
 
 	// .NET
-	TypeNuget Type = "nuget"
+	TypeNuget      Type = "nuget"
+	TypeDotNetDeps Type = "dotnet-deps"
 
 	// Python
 	TypePythonPkg Type = "python-pkg"
@@ -83,6 +85,11 @@ const (
 	TypeHelm           Type = "helm"
 
 	// ========
+	// License
+	// ========
+	TypeLicenseFile Type = "license-file"
+
+	// ========
 	// Secrets
 	// ========
 	TypeSecret Type = "secret"
@@ -96,25 +103,29 @@ const (
 
 var (
 	// TypeOSes has all OS-related analyzers
-	TypeOSes = []Type{TypeAlpine, TypeAmazon, TypeDebian, TypePhoton, TypeCentOS,
+	TypeOSes = []Type{
+		TypeOSRelease, TypeAlpine, TypeAmazon, TypeCBLMariner, TypeDebian, TypePhoton, TypeCentOS,
 		TypeRocky, TypeAlma, TypeFedora, TypeOracle, TypeRedHatBase, TypeSUSE, TypeUbuntu,
-		TypeApk, TypeDpkg, TypeRpm,
+		TypeApk, TypeDpkg, TypeDpkgLicense, TypeRpm, TypeRpmqa,
+		TypeApkRepo,
 	}
 
 	// TypeLanguages has all language analyzers
-	TypeLanguages = []Type{TypeBundler, TypeGemSpec, TypeCargo, TypeComposer, TypeJar, TypePom,
-		TypeNpmPkgLock, TypeNodePkg, TypeYarn, TypeNuget, TypePythonPkg, TypePip, TypePipenv,
-		TypePoetry, TypeGoBinary, TypeGoMod,
+	TypeLanguages = []Type{
+		TypeBundler, TypeGemSpec, TypeCargo, TypeComposer, TypeJar, TypePom,
+		TypeNpmPkgLock, TypeNodePkg, TypeYarn, TypePnpm, TypeNuget, TypeDotNetDeps,
+		TypePythonPkg, TypePip, TypePipenv, TypePoetry, TypeGoBinary, TypeGoMod,
 	}
 
 	// TypeLockfiles has all lock file analyzers
-	TypeLockfiles = []Type{TypeBundler, TypeNpmPkgLock, TypeYarn,
-		TypePip, TypePipenv, TypePoetry, TypeGoMod, TypePom,
+	TypeLockfiles = []Type{
+		TypeBundler, TypeNpmPkgLock, TypeYarn,
+		TypePnpm, TypePip, TypePipenv, TypePoetry, TypeGoMod, TypePom,
 	}
 
 	// TypeIndividualPkgs has all analyzers for individual packages
 	TypeIndividualPkgs = []Type{TypeGemSpec, TypeNodePkg, TypePythonPkg, TypeGoBinary, TypeJar}
 
 	// TypeConfigFiles has all config file analyzers
-	TypeConfigFiles = []Type{TypeYaml, TypeJSON, TypeDockerfile, TypeTerraform, TypeCloudFormation}
+	TypeConfigFiles = []Type{TypeYaml, TypeJSON, TypeDockerfile, TypeTerraform, TypeCloudFormation, TypeHelm}
 )
