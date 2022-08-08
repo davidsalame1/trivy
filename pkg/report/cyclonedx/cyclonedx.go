@@ -283,12 +283,13 @@ func (cw *Writer) pkgToComponent(t string, meta types.Metadata, pkg ftypes.Packa
 	}
 	properties := parseProperties(pkg)
 	component := cdx.Component{
-		Type:       cdx.ComponentTypeLibrary,
-		Name:       pkg.Name,
-		Version:    pu.Version,
-		BOMRef:     pu.BOMRef(),
-		PackageURL: pu.ToString(),
-		Properties: &properties,
+		Type:               cdx.ComponentTypeLibrary,
+		Name:               pkg.Name,
+		Version:            pu.Version,
+		BOMRef:             pu.BOMRef(),
+		PackageURL:         pu.ToString(),
+		Properties:         &properties,
+		ExternalReferences: convertExternalReferences(pkg.ExternalReferences),
 	}
 
 	if len(pkg.Licenses) != 0 {
@@ -569,5 +570,36 @@ func affects(ref, version string) cdx.Affects {
 				// "AffectedVersions.Range" is not included, because it does not exist in DetectedVulnerability.
 			},
 		},
+	}
+}
+
+func convertExternalReferences(refs []ftypes.ExternalRef) *[]cdx.ExternalReference {
+	if len(refs) == 0 {
+		return nil
+	}
+	var cdxRefs []cdx.ExternalReference
+	for _, ref := range refs {
+		cdxRefs = append(cdxRefs, cdx.ExternalReference{
+			URL:  ref.Url,
+			Type: toCDXExternalRefType(ref.Type),
+		})
+	}
+	return &cdxRefs
+}
+
+func toCDXExternalRefType(t ftypes.RefType) cdx.ExternalReferenceType {
+	switch t {
+	case ftypes.RefWebsite:
+		return cdx.ERTypeWebsite
+	case ftypes.RefLicense:
+		return cdx.ERTypeLicense
+	case ftypes.RefVCS:
+		return cdx.ERTypeVCS
+	case ftypes.RefIssueTracker:
+		return cdx.ERTypeIssueTracker
+	case ftypes.RefOther:
+		return cdx.ERTypeOther
+	default:
+		return cdx.ERTypeOther
 	}
 }

@@ -22,18 +22,24 @@ type Layer struct {
 	DiffID string `json:",omitempty"`
 }
 
+type ExternalRef struct {
+	Type RefType `json:",omitempty"`
+	Url  string  `json:",omitempty"`
+}
+
 type Package struct {
-	ID         string   `json:",omitempty"`
-	Name       string   `json:",omitempty"`
-	Version    string   `json:",omitempty"`
-	Release    string   `json:",omitempty"`
-	Epoch      int      `json:",omitempty"`
-	Arch       string   `json:",omitempty"`
-	SrcName    string   `json:",omitempty"`
-	SrcVersion string   `json:",omitempty"`
-	SrcRelease string   `json:",omitempty"`
-	SrcEpoch   int      `json:",omitempty"`
-	Licenses   []string `json:",omitempty"`
+	ID                 string        `json:",omitempty"`
+	Name               string        `json:",omitempty"`
+	Version            string        `json:",omitempty"`
+	Release            string        `json:",omitempty"`
+	Epoch              int           `json:",omitempty"`
+	Arch               string        `json:",omitempty"`
+	SrcName            string        `json:",omitempty"`
+	SrcVersion         string        `json:",omitempty"`
+	SrcRelease         string        `json:",omitempty"`
+	SrcEpoch           int           `json:",omitempty"`
+	Licenses           []string      `json:",omitempty"`
+	ExternalReferences []ExternalRef `json:",omitempty"`
 
 	Modularitylabel string     `json:",omitempty"` // only for Red Hat based distributions
 	BuildInfo       *BuildInfo `json:",omitempty"` // only for Red Hat
@@ -176,3 +182,13 @@ type CustomResource struct {
 	Layer    Layer
 	Data     interface{}
 }
+
+type RefType string
+
+const (
+	RefWebsite      RefType = "website"
+	RefLicense      RefType = "license"
+	RefVCS          RefType = "vcs"
+	RefIssueTracker RefType = "issue-tracker"
+	RefOther        RefType = "other"
+)

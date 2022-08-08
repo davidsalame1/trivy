@@ -37,13 +37,14 @@ func ToAnalysisResult(fileType, filePath, libFilePath string, libs []godeptypes.
 			licenses = []string{lib.License}
 		}
 		pkgs = append(pkgs, types.Package{
-			ID:        lib.ID,
-			Name:      lib.Name,
-			Version:   lib.Version,
-			FilePath:  libFilePath,
-			Indirect:  lib.Indirect,
-			Licenses:  licenses,
-			DependsOn: deps[lib.ID],
+			ID:                 lib.ID,
+			Name:               lib.Name,
+			Version:            lib.Version,
+			FilePath:           libFilePath,
+			Indirect:           lib.Indirect,
+			Licenses:           licenses,
+			DependsOn:          deps[lib.ID],
+			ExternalReferences: convertExternalReferences(lib.ExternalReferences),
 		})
 	}
 	apps := []types.Application{{
@@ -53,4 +54,32 @@ func ToAnalysisResult(fileType, filePath, libFilePath string, libs []godeptypes.
 	}}
 
 	return &analyzer.AnalysisResult{Applications: apps}
+}
+
+func convertExternalReferences(refs []godeptypes.ExternalRef) []types.ExternalRef {
+	var externalReferences []types.ExternalRef
+	for _, ref := range refs {
+		externalReferences = append(externalReferences, types.ExternalRef{
+			Type: convertType(ref.Type),
+			Url:  ref.URL,
+		})
+	}
+	return externalReferences
+}
+
+func convertType(t godeptypes.RefType) types.RefType {
+	switch t {
+	case godeptypes.RefWebsite:
+		return types.RefWebsite
+	case godeptypes.RefLicense:
+		return types.RefLicense
+	case godeptypes.RefVCS:
+		return types.RefVCS
+	case godeptypes.RefIssueTracker:
+		return types.RefIssueTracker
+	case godeptypes.RefOther:
+		return types.RefOther
+	default:
+		return types.RefOther
+	}
 }
